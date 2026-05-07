@@ -1,7 +1,7 @@
 export class Logger {
   private static instance: Logger;
 
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+   
   private constructor() {}
 
   public static getInstance(): Logger {
