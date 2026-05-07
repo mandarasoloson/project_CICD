@@ -6,6 +6,7 @@
   "scripts": {
     "prepare": "husky",
     "test": "jest",
+    "dev": "tsx src/server",
     "test:cov": "jest --coverage"
   },
   "keywords": [],
