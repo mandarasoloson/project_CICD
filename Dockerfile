@@ -22,7 +22,6 @@ FROM node:24-alpine AS production
 WORKDIR /app
 
 COPY package*.json ./
-# Pareil ici, on ignore les scripts pour éviter le crash de Husky
 RUN npm install --omit=dev --ignore-scripts
 
 COPY --from=builder /app/dist ./dist

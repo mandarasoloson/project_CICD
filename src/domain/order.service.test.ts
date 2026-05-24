@@ -32,7 +32,7 @@ describe('OrderService', () => {
     expect(result.amount).toBe(80); // 100 - 20%
     expect(result.status).toBe('PENDING');
     
-    // Vérifier que l'ordre a bien été "sauvegardé" dans notre faux repo
+    // Vérifier que l'ordre a bien été "sauvegardé" dans le faux repo
     const savedOrder = await mockRepo.findById(orderId);
     expect(savedOrder).not.toBeNull();
     expect(savedOrder?.amount).toBe(80);
