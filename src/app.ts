@@ -1,49 +1,41 @@
 import express, { Request, Response } from 'express';
-import { OrderService } from './domain/order.service';
-import { StandardPricing, VipPricing } from './domain/pricing.strategy';
-import { OrderRepository, Order } from './domain/order.repository';
 import path from 'path';
+import { OrderService } from './domain/order.service';
+import { OrderRepository, Order } from './domain/order.repository';
+import { ProductService } from './domain/product.service';
+import { ProductRepository, Product } from './domain/product.repository';
+import { createOrderRouter } from './routes/order.routes';
+import { createProductRouter } from './routes/product.routes';
 
-
-// fausse base de données en mémoire
-// Plus tard, remplacer avec vraie BDD avec Docker
 class AppOrderRepository implements OrderRepository {
   private orders: Order[] = [];
   async save(order: Order): Promise<void> { this.orders.push(order); }
-  async findById(id: string): Promise<Order | null> { return this.orders.find(o => o.id === id) || null; }
+  async findById(id: string): Promise<Order | null> { return this.orders.find(o => o.id === id) ?? null; }
+}
+
+class AppProductRepository implements ProductRepository {
+  private products: Product[] = [];
+  async save(product: Product): Promise<void> { this.products.push(product); }
+  async findById(id: string): Promise<Product | null> { return this.products.find(p => p.id === id) ?? null; }
+  async findAll(): Promise<Product[]> { return [...this.products]; }
+  async update(product: Product): Promise<void> {
+    const index = this.products.findIndex(p => p.id === product.id);
+    if (index !== -1) this.products[index] = product;
+  }
 }
 
 const app = express();
-app.use(express.json()); // Permet de lire le JSON envoyé par les clients
+app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
-const orderRepo = new AppOrderRepository();
-const orderService = new OrderService(orderRepo);
+const orderService = new OrderService(new AppOrderRepository());
+const productService = new ProductService(new AppProductRepository());
 
-// --- ROUTES ---
-
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'healthy', database: 'connected' });
 });
 
-// 2. La route pour créer une commande
-app.post('/orders', async (req: Request, res: Response) => {
-  const { id, amount, isVip } = req.body;
-
-  // Validation basique
-  if (!id || !amount) {
-    return res.status(400).json({ error: 'Missing id or amount' });
-  }
-
-  // Utilisation Design Pattern "Strategy"
-  const strategy = isVip ? new VipPricing() : new StandardPricing();
-
-  try {
-    const order = await orderService.createOrder(id, amount, strategy);
-    res.status(201).json(order);
-  } catch {
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
+app.use('/orders', createOrderRouter(orderService));
+app.use('/products', createProductRouter(productService));
 
 export { app };
