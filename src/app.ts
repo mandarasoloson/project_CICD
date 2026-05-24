@@ -2,6 +2,8 @@ import express, { Request, Response } from 'express';
 import { OrderService } from './domain/order.service';
 import { StandardPricing, VipPricing } from './domain/pricing.strategy';
 import { OrderRepository, Order } from './domain/order.repository';
+import path from 'path';
+
 
 // fausse base de données en mémoire
 // Plus tard, remplacer avec vraie BDD avec Docker
@@ -13,6 +15,7 @@ class AppOrderRepository implements OrderRepository {
 
 const app = express();
 app.use(express.json()); // Permet de lire le JSON envoyé par les clients
+app.use(express.static(path.join(__dirname, '../public')));
 
 const orderRepo = new AppOrderRepository();
 const orderService = new OrderService(orderRepo);
