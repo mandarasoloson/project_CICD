@@ -1,9 +1,12 @@
+let cartId = null;
+
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('login-btn')?.addEventListener('click', login);
   document.getElementById('order-btn')?.addEventListener('click', makeOrder);
   document.getElementById('add-product-btn')?.addEventListener('click', addProduct);
   document.getElementById('refresh-products')?.addEventListener('click', loadProducts);
   document.getElementById('toggle-add-product')?.addEventListener('click', toggleAddProductForm);
+  document.getElementById('checkout-btn')?.addEventListener('click', checkout);
 
   document.getElementById('prod-type')?.addEventListener('change', (e) => {
     const stockField = document.getElementById('stock-field');
@@ -14,6 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
 function login() {
   const name = document.getElementById('username').value.trim();
   if (!name) return;
+
+  cartId = `cart-${name.toLowerCase().replace(/\s+/g, '-')}`;
 
   document.getElementById('login-section').style.display = 'none';
   const appSection = document.getElementById('app-section');
@@ -28,6 +33,7 @@ function login() {
   document.getElementById('nav-avatar').innerText = name.charAt(0).toUpperCase();
 
   loadProducts();
+  loadCart();
 }
 
 function toggleAddProductForm() {
@@ -37,6 +43,8 @@ function toggleAddProductForm() {
   form.style.display = open ? 'block' : 'none';
   btn.innerText = open ? '✕ Fermer' : '+ Ajouter';
 }
+
+// ── CATALOGUE ────────────────────────────────────────────
 
 async function loadProducts() {
   try {
@@ -82,6 +90,7 @@ function renderProducts(products) {
           ${badge}
           ${stock}
           <span class="product-price">${p.price}€</span>
+          <button class="btn-ghost" style="padding:4px 10px;font-size:.75rem;" onclick="addToCart('${p.id}')">+ Panier</button>
         </div>
       </div>`;
   }).join('');
@@ -108,8 +117,8 @@ async function addProduct() {
     const data = await res.json();
 
     if (res.ok) {
-      resultEl.innerText   = `✓ "${data.name}" ajouté avec succès`;
-      resultEl.className   = 'alert alert-success alert-sm';
+      resultEl.innerText = `✓ "${data.name}" ajouté avec succès`;
+      resultEl.className = 'alert alert-success alert-sm';
       ['prod-id','prod-name','prod-price','prod-category','prod-stock']
         .forEach(id => { document.getElementById(id).value = ''; });
       loadProducts();
@@ -122,6 +131,110 @@ async function addProduct() {
     resultEl.className = 'alert alert-error alert-sm';
   }
 }
+
+// ── PANIER ───────────────────────────────────────────────
+
+async function addToCart(productId) {
+  if (!cartId) return;
+  try {
+    const res = await fetch(`/cart/${cartId}/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId, quantity: 1 }),
+    });
+    if (res.ok) loadCart();
+  } catch { /* silencieux */ }
+}
+
+async function removeFromCart(productId) {
+  if (!cartId) return;
+  try {
+    await fetch(`/cart/${cartId}/items/${productId}`, { method: 'DELETE' });
+    loadCart();
+  } catch { /* silencieux */ }
+}
+
+async function loadCart() {
+  if (!cartId) return;
+  try {
+    const res = await fetch(`/cart/${cartId}`);
+    if (res.status === 404) { renderCart({ items: [], total: 0, status: 'active' }); return; }
+    renderCart(await res.json());
+  } catch {
+    renderCart({ items: [], total: 0, status: 'active' });
+  }
+}
+
+function renderCart(cart) {
+  const list     = document.getElementById('cart-list');
+  const footer   = document.getElementById('cart-footer');
+  const countEl  = document.getElementById('cart-count');
+  const totalEl  = document.getElementById('cart-total');
+
+  const isCheckedOut = cart.status === 'checked_out';
+
+  if (!cart.items.length) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 2.3c-.6.6-.2 1.7.7 1.7H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
+        <p>Panier vide</p>
+        <small>Ajoutez des produits depuis le catalogue</small>
+      </div>`;
+    footer.style.display = 'none';
+    countEl.style.display = 'none';
+    return;
+  }
+
+  list.innerHTML = cart.items.map(item => `
+    <div class="cart-item fade-in">
+      <div>
+        <div class="cart-item-name">${item.productName}</div>
+        <div class="cart-item-qty">${item.quantity} × ${item.unitPrice}€</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="cart-item-price">${item.quantity * item.unitPrice}€</span>
+        ${!isCheckedOut ? `<button class="btn-remove" onclick="removeFromCart('${item.productId}')">✕</button>` : ''}
+      </div>
+    </div>`).join('');
+
+  footer.style.display = 'block';
+  totalEl.innerText = `${cart.total}€`;
+  countEl.style.display = 'inline';
+  countEl.innerText = `${cart.items.length} article${cart.items.length > 1 ? 's' : ''}`;
+
+  const checkoutBtn = document.getElementById('checkout-btn');
+  if (isCheckedOut) {
+    checkoutBtn.style.display = 'none';
+  } else {
+    checkoutBtn.style.display = 'block';
+  }
+}
+
+async function checkout() {
+  if (!cartId) return;
+  const resultEl = document.getElementById('checkout-result');
+  try {
+    const res  = await fetch(`/cart/${cartId}/checkout`, { method: 'POST' });
+    const data = await res.json();
+
+    if (res.ok) {
+      resultEl.innerText = `✓ Commande validée ! Total : ${data.total}€`;
+      resultEl.className = 'alert alert-success';
+      loadCart();
+      loadProducts();
+    } else {
+      resultEl.innerText = `✕ ${data.error}`;
+      resultEl.className = 'alert alert-error';
+    }
+  } catch {
+    resultEl.innerText = '✕ Impossible de joindre l\'API';
+    resultEl.className = 'alert alert-error';
+  }
+}
+
+// ── COMMANDE MANUELLE ────────────────────────────────────
 
 async function makeOrder() {
   const id      = document.getElementById('order-id').value;
