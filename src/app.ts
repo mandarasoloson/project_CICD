@@ -4,8 +4,12 @@ import { OrderService } from './domain/order.service';
 import { OrderRepository, Order } from './domain/order.repository';
 import { ProductService } from './domain/product.service';
 import { ProductRepository, Product } from './domain/product.repository';
+import { CartService } from './domain/cart.service';
+import { CartRepository, Cart } from './domain/cart.repository';
+import { StockUpdater, OrderLogger } from './domain/cart-observer';
 import { createOrderRouter } from './routes/order.routes';
 import { createProductRouter } from './routes/product.routes';
+import { createCartRouter } from './routes/cart.routes';
 
 class AppOrderRepository implements OrderRepository {
   private orders: Order[] = [];
@@ -24,18 +28,36 @@ class AppProductRepository implements ProductRepository {
   }
 }
 
+class AppCartRepository implements CartRepository {
+  private carts: Cart[] = [];
+  async save(cart: Cart): Promise<void> { this.carts.push({ ...cart, items: [...cart.items] }); }
+  async findById(id: string): Promise<Cart | null> {
+    const cart = this.carts.find(c => c.id === id);
+    return cart ? { ...cart, items: [...cart.items] } : null;
+  }
+  async update(cart: Cart): Promise<void> {
+    const index = this.carts.findIndex(c => c.id === cart.id);
+    if (index !== -1) this.carts[index] = { ...cart, items: [...cart.items] };
+  }
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
-const orderService = new OrderService(new AppOrderRepository());
 const productService = new ProductService(new AppProductRepository());
+const cartService = new CartService(new AppCartRepository(), productService);
+
+// Pattern Observer : on branche les observateurs ici, CartService ne les connaît pas
+cartService.addObserver(new StockUpdater(productService));
+cartService.addObserver(new OrderLogger());
 
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'healthy', database: 'connected' });
 });
 
-app.use('/orders', createOrderRouter(orderService));
+app.use('/orders', createOrderRouter(new OrderService(new AppOrderRepository())));
 app.use('/products', createProductRouter(productService));
+app.use('/cart', createCartRouter(cartService));
 
 export { app };
