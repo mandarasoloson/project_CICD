@@ -1,8 +1,8 @@
 let cartId = null;
+let currentCart = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('login-btn')?.addEventListener('click', login);
-  document.getElementById('order-btn')?.addEventListener('click', makeOrder);
   document.getElementById('add-product-btn')?.addEventListener('click', addProduct);
   document.getElementById('refresh-products')?.addEventListener('click', loadProducts);
   document.getElementById('toggle-add-product')?.addEventListener('click', toggleAddProductForm);
@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const stockField = document.getElementById('stock-field');
     if (stockField) stockField.style.display = e.target.value === 'digital' ? 'none' : 'block';
   });
+
+  document.getElementById('is-vip')?.addEventListener('change', updateDisplayedTotal);
 });
 
 function login() {
@@ -158,18 +160,26 @@ async function loadCart() {
   if (!cartId) return;
   try {
     const res = await fetch(`/cart/${cartId}`);
-    if (res.status === 404) { renderCart({ items: [], total: 0, status: 'active' }); return; }
-    renderCart(await res.json());
+    if (res.status === 404) { currentCart = null; renderCart({ items: [], total: 0, status: 'active' }); return; }
+    currentCart = await res.json();
+    renderCart(currentCart);
   } catch {
     renderCart({ items: [], total: 0, status: 'active' });
   }
 }
 
+function updateDisplayedTotal() {
+  if (!currentCart) return;
+  const isVip = document.getElementById('is-vip').checked;
+  const base  = currentCart.total;
+  const total = isVip ? Math.round(base * 0.8 * 100) / 100 : base;
+  document.getElementById('cart-total').innerText = `${total}€`;
+}
+
 function renderCart(cart) {
-  const list     = document.getElementById('cart-list');
-  const footer   = document.getElementById('cart-footer');
-  const countEl  = document.getElementById('cart-count');
-  const totalEl  = document.getElementById('cart-total');
+  const list    = document.getElementById('cart-list');
+  const footer  = document.getElementById('cart-footer');
+  const countEl = document.getElementById('cart-count');
 
   const isCheckedOut = cart.status === 'checked_out';
 
@@ -180,7 +190,7 @@ function renderCart(cart) {
           <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 2.3c-.6.6-.2 1.7.7 1.7H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
         </svg>
         <p>Panier vide</p>
-        <small>Ajoutez des produits depuis le catalogue</small>
+        <small>Cliquez sur "+ Panier" depuis le catalogue</small>
       </div>`;
     footer.style.display = 'none';
     countEl.style.display = 'none';
@@ -200,28 +210,32 @@ function renderCart(cart) {
     </div>`).join('');
 
   footer.style.display = 'block';
-  totalEl.innerText = `${cart.total}€`;
   countEl.style.display = 'inline';
   countEl.innerText = `${cart.items.length} article${cart.items.length > 1 ? 's' : ''}`;
 
-  const checkoutBtn = document.getElementById('checkout-btn');
-  if (isCheckedOut) {
-    checkoutBtn.style.display = 'none';
-  } else {
-    checkoutBtn.style.display = 'block';
-  }
+  document.getElementById('checkout-btn').style.display = isCheckedOut ? 'none' : 'block';
+  document.getElementById('is-vip').disabled = isCheckedOut;
+
+  updateDisplayedTotal();
 }
 
 async function checkout() {
   if (!cartId) return;
+  const isVip   = document.getElementById('is-vip').checked;
   const resultEl = document.getElementById('checkout-result');
+
   try {
-    const res  = await fetch(`/cart/${cartId}/checkout`, { method: 'POST' });
+    const res  = await fetch(`/cart/${cartId}/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isVip }),
+    });
     const data = await res.json();
 
     if (res.ok) {
-      resultEl.innerText = `✓ Commande validée ! Total : ${data.total}€`;
+      resultEl.innerText = `✓ Commande validée ! Total : ${data.total}€${isVip ? ' (remise VIP appliquée)' : ''}`;
       resultEl.className = 'alert alert-success';
+      currentCart = data.cart;
       loadCart();
       loadProducts();
     } else {
@@ -230,35 +244,6 @@ async function checkout() {
     }
   } catch {
     resultEl.innerText = '✕ Impossible de joindre l\'API';
-    resultEl.className = 'alert alert-error';
-  }
-}
-
-// ── COMMANDE MANUELLE ────────────────────────────────────
-
-async function makeOrder() {
-  const id      = document.getElementById('order-id').value;
-  const amount  = Number(document.getElementById('order-amount').value);
-  const isVip   = document.getElementById('is-vip').checked;
-  const resultEl = document.getElementById('result');
-
-  try {
-    const res  = await fetch('/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, amount, isVip }),
-    });
-    const data = await res.json();
-
-    if (res.ok) {
-      resultEl.innerText = ` Commande ${data.id} validée. Total payé : ${data.amount}€`;
-      resultEl.className = 'alert alert-success';
-    } else {
-      resultEl.innerText = ` Erreur : ${data.error || 'Erreur serveur'}`;
-      resultEl.className = 'alert alert-error';
-    }
-  } catch {
-    resultEl.innerText = ' Impossible de joindre l\'API';
     resultEl.className = 'alert alert-error';
   }
 }

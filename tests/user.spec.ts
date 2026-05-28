@@ -44,9 +44,18 @@ test.describe('TechStore.io — Parcours E2E', () => {
   });
 
   test('Panier : ajout d\'un produit et checkout', async ({ page }) => {
-    // Créer un produit avec un ID unique pour ce test
+    // IDs uniques pour isoler ce test entre plusieurs runs
+    const uid = Date.now();
+    const cartUser = `Robot Cart ${uid}`;
+    const cartProdId = `PROD-CART-${uid}`;
+
+    await page.goto('http://localhost:3000');
+    await page.fill('#username', cartUser);
+    await page.click('#login-btn');
+    await expect(page.locator('#greeting')).toContainText(`Bonjour ${cartUser}`);
+
     await page.click('#toggle-add-product');
-    await page.fill('#prod-id', 'PROD-CART-E2E');
+    await page.fill('#prod-id', cartProdId);
     await page.fill('#prod-name', 'Casque Audio E2E');
     await page.fill('#prod-price', '80');
     await page.fill('#prod-category', 'audio');
@@ -56,37 +65,55 @@ test.describe('TechStore.io — Parcours E2E', () => {
     await expect(page.locator('#product-result')).toContainText('Casque Audio E2E');
     await page.click('#toggle-add-product');
 
-    // Ajouter au panier en ciblant spécifiquement ce produit
     await page.locator('#product-list .product-item')
       .filter({ hasText: 'Casque Audio E2E' })
       .getByRole('button', { name: '+ Panier' })
+      .first()
       .click();
 
-    // Vérifier que le panier se met à jour
     await expect(page.locator('#cart-list')).toContainText('Casque Audio E2E');
     await expect(page.locator('#cart-total')).toContainText('80€');
 
-    // Valider la commande
     await page.click('#checkout-btn');
     await expect(page.locator('#checkout-result')).toContainText('Commande validée');
     await expect(page.locator('#checkout-result')).toContainText('80€');
   });
 
-  test('Commande manuelle VIP avec réduction 20%', async ({ page }) => {
-    await page.fill('#order-id', 'CMD-ROBOT-01');
-    await page.fill('#order-amount', '100');
+  test('Panier : remise VIP de 20% affichée avant checkout', async ({ page }) => {
+    // Username unique pour garantir un panier vierge à chaque run
+    const uid = Date.now();
+    const vipUser = `Robot VIP ${uid}`;
+    const vipProdId = `PROD-VIP-${uid}`;
+
+    await page.goto('http://localhost:3000');
+    await page.fill('#username', vipUser);
+    await page.click('#login-btn');
+    await expect(page.locator('#greeting')).toContainText(`Bonjour ${vipUser}`);
+
+    await page.click('#toggle-add-product');
+    await page.fill('#prod-id', vipProdId);
+    await page.fill('#prod-name', 'Clavier VIP');
+    await page.fill('#prod-price', '100');
+    await page.fill('#prod-category', 'peripherals');
+    await page.selectOption('#prod-type', 'physical');
+    await page.fill('#prod-stock', '5');
+    await page.click('#add-product-btn');
+    await expect(page.locator('#product-result')).toContainText('Clavier VIP');
+    await page.click('#toggle-add-product');
+
+    await page.locator('#product-list .product-item')
+      .filter({ hasText: 'Clavier VIP' })
+      .getByRole('button', { name: '+ Panier' })
+      .first()
+      .click();
+
+    await expect(page.locator('#cart-total')).toContainText('100€');
     await page.check('#is-vip');
-    await page.click('#order-btn');
+    await expect(page.locator('#cart-total')).toContainText('80€');
 
-    await expect(page.locator('#result')).toContainText('Commande CMD-ROBOT-01 validée. Total payé : 80€');
-  });
-
-  test('Commande manuelle standard sans réduction', async ({ page }) => {
-    await page.fill('#order-id', 'CMD-ROBOT-02');
-    await page.fill('#order-amount', '50');
-    await page.click('#order-btn');
-
-    await expect(page.locator('#result')).toContainText('Commande CMD-ROBOT-02 validée. Total payé : 50€');
+    await page.click('#checkout-btn');
+    await expect(page.locator('#checkout-result')).toContainText('80€');
+    await expect(page.locator('#checkout-result')).toContainText('VIP');
   });
 
 });

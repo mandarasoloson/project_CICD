@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { CartService } from '../domain/cart.service';
+import { StandardPricing, VipPricing } from '../domain/pricing.strategy';
 
 export function createCartRouter(cartService: CartService): Router {
   const router = Router();
@@ -41,8 +42,10 @@ export function createCartRouter(cartService: CartService): Router {
   });
 
   router.post('/:cartId/checkout', async (req: Request, res: Response) => {
+    const { isVip } = req.body as { isVip?: boolean };
+    const strategy = isVip ? new VipPricing() : new StandardPricing();
     try {
-      const result = await cartService.checkout(req.params['cartId'] as string);
+      const result = await cartService.checkout(req.params['cartId'] as string, strategy);
       res.json(result);
     } catch (err) {
       res.status(400).json({ error: err instanceof Error ? err.message : 'Erreur serveur' });
