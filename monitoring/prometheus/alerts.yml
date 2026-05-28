@@ -1,0 +1,29 @@
+groups:
+  - name: techstore_alerts
+    rules:
+      - alert: AppDown
+        expr: up{job="techstore-api"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "TechStore API est inaccessible"
+          description: "L'API n'a pas répondu depuis plus de 30 secondes."
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status_code=~"5.."}[5m]) > 0.1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Taux d'erreurs 5xx élevé"
+          description: "Plus de 10% des requêtes retournent une erreur 5xx."
+
+      - alert: SlowResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Temps de réponse dégradé"
+          description: "Le 95e percentile des temps de réponse dépasse 1 seconde."
