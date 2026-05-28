@@ -44,7 +44,7 @@
     <div class="app-header">
       <div>
         <h2 id="greeting">Bonjour !</h2>
-        <p>Que souhaitez-vous faire aujourd'hui ?</p>
+        <p>Sélectionnez des produits et validez votre panier</p>
       </div>
       <div class="status-pill">
         <span class="status-dot"></span> En ligne
@@ -116,80 +116,45 @@
         <button id="refresh-products" class="btn-text">↻ Actualiser le catalogue</button>
       </div>
 
-      <!-- PANIER + COMMANDE -->
-      <div style="display:flex;flex-direction:column;gap:16px;">
-        <!-- PANIER -->
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title">
-              <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 2.3c-.6.6-.2 1.7.7 1.7H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-              </svg>
-              Mon panier
-            </h3>
-            <span id="cart-count" class="badge badge-digital" style="display:none;">0 article</span>
-          </div>
+      <!-- PANIER -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 2.3c-.6.6-.2 1.7.7 1.7H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            Mon panier
+          </h3>
+          <span id="cart-count" class="badge badge-digital" style="display:none;">0 article</span>
+        </div>
 
-          <div id="cart-list">
-            <div class="empty-state">
-              <svg viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 2.3c-.6.6-.2 1.7.7 1.7H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-              </svg>
-              <p>Panier vide</p>
-              <small>Ajoutez des produits depuis le catalogue</small>
-            </div>
-          </div>
-
-          <div id="cart-footer" style="display:none;">
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--gray-100);margin-top:8px;">
-              <span style="font-size:.85rem;color:var(--gray-500);">Total</span>
-              <span id="cart-total" style="font-size:1.1rem;font-weight:800;color:var(--gray-900);">0€</span>
-            </div>
-            <button id="checkout-btn" class="btn btn-primary">Valider la commande</button>
-            <div id="checkout-result"></div>
+        <div id="cart-list">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 2.3c-.6.6-.2 1.7.7 1.7H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            <p>Panier vide</p>
+            <small>Cliquez sur "+ Panier" depuis le catalogue</small>
           </div>
         </div>
 
-        <!-- COMMANDE MANUELLE -->
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title">
-              <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 2.3c-.6.6-.2 1.7.7 1.7H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-              </svg>
-              Commande manuelle
-            </h3>
-          </div>
-
-          <div class="input-group">
-            <label class="field-label">ID de la commande</label>
-            <input type="text" id="order-id" placeholder="ex: CMD-2024">
-          </div>
-          <div class="input-group">
-            <label class="field-label">Montant total (€)</label>
-            <input type="number" id="order-amount" placeholder="0.00">
-          </div>
-
-          <label class="vip-toggle">
+        <div id="cart-footer" style="display:none;">
+          <label class="vip-toggle" style="margin-top:12px;">
             <input type="checkbox" id="is-vip">
             <div class="vip-label">
               <h4>Remise VIP</h4>
-              <p>Réduction de 20% sur le montant total</p>
+              <p>-20% sur le total du panier</p>
             </div>
             <span class="vip-badge">-20%</span>
           </label>
 
-          <button id="order-btn" class="btn btn-dark">Confirmer le paiement</button>
-          <div id="result"></div>
-        </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--gray-100);margin-top:4px;">
+            <span style="font-size:.85rem;color:var(--gray-500);">Total</span>
+            <span id="cart-total" style="font-size:1.1rem;font-weight:800;color:var(--gray-900);">0€</span>
+          </div>
 
-        <div class="info-card">
-          <h4>Comment ça marche ?</h4>
-          <ul>
-            <li>Ajoutez des produits au catalogue</li>
-            <li>Saisissez un ID de commande et un montant</li>
-            <li>Activez la remise VIP si applicable</li>
-          </ul>
+          <button id="checkout-btn" class="btn btn-dark">Valider la commande</button>
+          <div id="checkout-result"></div>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { Cart, CartRepository } from './cart.repository';
 import { CartObserver } from './cart-observer';
 import { ProductService } from './product.service';
+import { PricingStrategy, StandardPricing } from './pricing.strategy';
 
 export class CartService {
   private observers: CartObserver[] = [];
@@ -59,12 +60,15 @@ export class CartService {
     return cart.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
   }
 
-  async checkout(cartId: string): Promise<{ cart: Cart; total: number }> {
+  async checkout(cartId: string, strategy: PricingStrategy = new StandardPricing()): Promise<{ cart: Cart; total: number }> {
     const cart = await this.getCartOrThrow(cartId);
     if (cart.items.length === 0) throw new Error('Le panier est vide');
     if (cart.status === 'checked_out') throw new Error('Ce panier a déjà été validé');
 
-    const total = this.computeTotal(cart);
+    // Pattern Strategy : le calcul du prix final est délégué à la stratégie choisie
+    const baseTotal = this.computeTotal(cart);
+    const total = strategy.calculateTotal(baseTotal);
+
     cart.status = 'checked_out';
     await this.cartRepo.update(cart);
 
