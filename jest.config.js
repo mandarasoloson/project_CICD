@@ -10,6 +10,7 @@ module.exports = {
     '!src/utils/logger.ts' // On ne teste pas la console pure
   ],
   coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov'],
   coverageThreshold: {
     global: {
       statements: 80,
