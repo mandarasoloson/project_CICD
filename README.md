@@ -155,6 +155,20 @@ terraform destroy # suppression
 API (:3000/metrics) ←── Prometheus (:9090) ──→ Grafana (:3002)
 ```
 
+### Screenshots
+
+**Prometheus — API scrapée (UP)**
+![Prometheus Targets](docs/screenshots/prometheus-targets.png)
+
+**Prometheus — Métriques HTTP en temps réel**
+![Prometheus Metrics](docs/screenshots/prometheus-metrics.png)
+
+**Grafana — Datasource Prometheus auto-configurée**
+![Grafana Datasource](docs/screenshots/grafana-datasource.png)
+
+**Grafana — Exploration des métriques**
+![Grafana Explore](docs/screenshots/grafana-explore.png)
+
 ### Alertes configurées
 
 | Alerte | Condition | Sévérité |
