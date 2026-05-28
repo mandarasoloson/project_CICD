@@ -19,6 +19,10 @@ RUN npx tsc
 # ==========================================
 FROM node:24-alpine AS production
 
+LABEL maintainer="mandarasoloson"
+LABEL version="1.0.0"
+LABEL description="TechStore.io — API e-commerce avec pipeline CI/CD"
+
 WORKDIR /app
 
 COPY package*.json ./
