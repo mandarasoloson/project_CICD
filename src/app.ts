@@ -1,5 +1,6 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
+import { registry, httpRequestCounter, httpRequestDuration } from './utils/metrics';
 import { OrderService } from './domain/order.service';
 import { OrderRepository, Order } from './domain/order.repository';
 import { ProductService } from './domain/product.service';
@@ -45,6 +46,16 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const end = httpRequestDuration.startTimer();
+  res.on('finish', () => {
+    const route = req.route?.path ?? req.path;
+    httpRequestCounter.inc({ method: req.method, route, status_code: res.statusCode });
+    end({ method: req.method, route, status_code: res.statusCode });
+  });
+  next();
+});
+
 const productService = new ProductService(new AppProductRepository());
 const cartService = new CartService(new AppCartRepository(), productService);
 
@@ -54,6 +65,11 @@ cartService.addObserver(new OrderLogger());
 
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'healthy', database: 'connected' });
+});
+
+app.get('/metrics', async (_req: Request, res: Response) => {
+  res.set('Content-Type', registry.contentType);
+  res.end(await registry.metrics());
 });
 
 app.use('/orders', createOrderRouter(new OrderService(new AppOrderRepository())));
