@@ -42,7 +42,7 @@ export function createCartRouter(cartService: CartService): Router {
   });
 
   router.post('/:cartId/checkout', async (req: Request, res: Response) => {
-    const { isVip } = req.body as { isVip?: boolean };
+    const isVip = (req.body as { isVip?: boolean } | undefined)?.isVip;
     const strategy = isVip ? new VipPricing() : new StandardPricing();
     try {
       const result = await cartService.checkout(req.params['cartId'] as string, strategy);
