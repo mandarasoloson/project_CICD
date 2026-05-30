@@ -206,6 +206,26 @@ Chaque image Docker est taguée avec le SHA du commit (`ghcr.io/.../project_cicd
 
 ---
 
+## Limitations & choix techniques
+
+### Stockage en mémoire
+
+Les données (produits, paniers, commandes) sont stockées en RAM et non dans une vraie base de données. Ce choix a été fait pour garder l'infrastructure simple dans le cadre de ce projet.
+
+Le **pattern Repository** a été mis en place justement pour anticiper ce besoin : toute la logique métier passe par une interface (`CartRepository`, `ProductRepository`) sans savoir comment les données sont stockées. Passer à PostgreSQL ne demanderait de modifier qu'un seul fichier — l'implémentation du repository :
+
+```typescript
+// Aujourd'hui (développement)
+new CartService(new AppCartRepository(), productService)
+
+// En production
+new CartService(new PostgresCartRepository(db), productService)
+```
+
+Le `CartService`, les routes, et les tests unitaires ne changeraient pas.
+
+---
+
 ## Qualité du code
 
 - **SonarCloud** : Quality Gate bloquante — 0 bugs, 0 vulnérabilités, duplication < 3%
